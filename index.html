@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIREBREAK</title>
+<meta name="description" content="Ten quiet years to prepare a hillside. One season each year to find out if you understood the fire, or only the map.">
+<meta property="og:title" content="FIREBREAK">
+<meta property="og:description" content="Defense against a distribution. Cut breaks, thin brush, burn small — before you know where lightning will strike.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AA%93%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg: #17231a;
+    --bg2: #1e2e21;
+    --panel: #22321f;
+    --line: #3a4a34;
+    --ink: #f1e7c8;
+    --ink-dim: #b9ad8d;
+    --gold: #d9a441;
+    --gold-dim: #a97e30;
+    --safe: #5a8a4a;
+    --ember: #c1502e;
+    --ember-dim: #8a3a22;
+    --ghost-bad: #7a4fae;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg);
+    color:var(--ink);
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  body{
+    min-height:100dvh;
+    display:flex;
+    justify-content:center;
+    background:
+      radial-gradient(ellipse at 50% -10%, #2c3d22 0%, transparent 60%),
+      var(--bg);
+  }
+  #app{
+    width:100%;
+    max-width:480px;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 14px) calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 14px);
+    position:relative;
+  }
+  .screen{ display:none; flex-direction:column; flex:1; gap:14px; animation: fadein .25s ease; }
+  .screen.active{ display:flex; }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  h1{ font-size:2.1rem; letter-spacing:0.06em; margin: 0 0 2px 0; color:var(--gold); text-transform:uppercase; }
+  h2{ font-size:1.2rem; margin: 0 0 4px 0; color:var(--gold); }
+  p{ line-height:1.5; margin:0 0 10px 0; color:var(--ink-dim); }
+  .tag{ font-style:italic; color:var(--ink-dim); margin-top:-6px; }
+
+  .spacer{ flex:1; }
+
+  button{
+    font-family: inherit;
+    font-size:1rem;
+    background: var(--panel);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor:pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active{ transform: translateY(1px); }
+  button.primary{ background: var(--gold-dim); border-color: var(--gold); color:#1a1206; font-weight:bold; }
+  button.ghost{ background:transparent; }
+  button:disabled{ opacity:.4; cursor:default; }
+  .row{ display:flex; gap:8px; }
+  .row.wrap{ flex-wrap:wrap; }
+  .row > button{ flex:1; }
+
+  .hud{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:.85rem; color:var(--ink-dim);
+    border-bottom:1px solid var(--line);
+    padding-bottom:8px;
+  }
+  .hud b{ color:var(--gold); }
+
+  #mapWrap{
+    background: var(--bg2);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:6px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    touch-action: manipulation;
+  }
+  canvas{ display:block; max-width:100%; height:auto; }
+
+  .actions{
+    display:flex; gap:6px;
+  }
+  .actbtn{
+    flex:1;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:10px 4px;
+    font-size:.82rem;
+  }
+  .actbtn small{ color:var(--ink-dim); font-size:.72rem; }
+  .actbtn.selected{ border-color:var(--gold); background: var(--panel); box-shadow: inset 0 0 0 1px var(--gold); }
+
+  .legend{ font-size:.75rem; color:var(--ink-dim); display:flex; gap:10px; flex-wrap:wrap; }
+  .legend span{ display:inline-flex; align-items:center; gap:4px; }
+  .swatch{ width:10px; height:10px; border-radius:2px; display:inline-block; }
+
+  .statgrid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px; }
+  .stat b{ display:block; font-size:1.4rem; color:var(--gold); }
+  .stat span{ font-size:.78rem; color:var(--ink-dim); }
+
+  .lm-row{ display:flex; justify-content:space-between; font-size:.85rem; padding:4px 0; border-bottom:1px dashed var(--line); }
+  .lm-row.lost{ color:var(--ember); }
+  .lm-row.held{ color:var(--safe); }
+
+  #toast{
+    position:absolute; left:14px; right:14px; bottom:calc(env(safe-area-inset-bottom) + 14px);
+    background: var(--panel); border:1px solid var(--gold); border-radius:10px;
+    padding:10px 12px; font-size:.85rem; text-align:center;
+    display:none;
+  }
+  #toast.show{ display:block; }
+
+  a.textlink{ color: var(--gold); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <section class="screen" id="screen-title">
+    <div class="spacer"></div>
+    <div>
+      <h1>Firebreak</h1>
+      <p class="tag">A quiet year, and then the season finds out what the quiet year was worth.</p>
+    </div>
+    <p>You keep the land: the town, the grove, the ridge farm. Every year you have a
+      short window to cut breaks, thin brush, and burn small patches — before you
+      know where lightning will strike. Then the season plays out on its own terms.
+      Ten years. The land remembers every cut, every burn, and every year you
+      guessed wrong.</p>
+    <div class="row" style="flex-direction:column;">
+      <button class="primary" id="btnNewGame">Begin the watch</button>
+      <button class="ghost" id="btnContinue" style="display:none;">Continue, year <span id="continueYear"></span></button>
+      <button class="ghost" id="btnHowTo">How this works</button>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <!-- HOW TO -->
+  <section class="screen" id="screen-howto">
+    <h2>How this works</h2>
+    <p><b>Prep phase.</b> Tap hexes on the hillside and choose an action: cut a
+      break (clears fuel, holds), thin brush (reduces fuel, cheap), or burn a
+      small controlled patch (near-zero fuel, moderate cost, moderate risk to your
+      nerves). You have a limited budget each year — spend it where you believe
+      the danger is.</p>
+    <p><b>Season.</b> Lightning strikes the hillside according to real weather —
+      dry years draw more strikes, and strikes favor cells with heavier natural
+      growth. Fire then spreads hex to hex: high fuel catches easier, wind pushes
+      it further downwind, and any cell you cleared to zero simply will not carry
+      it.</p>
+    <p><b>Autopsy.</b> Every year, the game also quietly plays out the exact same
+      lightning on a hillside where you did nothing at all — the ghost year. After
+      the fire, you see both: gold hexes are ground your prep saved, ember hexes
+      burned in both versions, and violet hexes are the rare case where your
+      prepped hillside burned somewhere the ghost didn't — bad luck the map
+      alone can't explain away.</p>
+    <p><b>Ten years.</b> Burned ground regrows slowly. Breaks you don't maintain
+      grow back too. The town, the grove, and the ridge farm can be lost — not as
+      a fail state, just as what happened that year.</p>
+    <button class="primary" id="btnHowToBack">Back</button>
+  </section>
+
+  <!-- PREP -->
+  <section class="screen" id="screen-prep">
+    <div class="hud">
+      <span>Year <b id="hudYear">1</b> of 10</span>
+      <span>Budget <b id="hudBudget">10</b> · spent <span id="hudSpent">0</span></span>
+    </div>
+    <div id="mapWrap"><canvas id="mapCanvas" width="380" height="380"></canvas></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#4a6b3a"></i> low fuel</span>
+      <span><i class="swatch" style="background:#c98a2e"></i> high fuel</span>
+      <span><i class="swatch" style="background:#2a3a26;border:1px solid #d9a441"></i> town / grove / farm</span>
+      <span><i class="swatch" style="background:#e9e2c6"></i> your cuts this year</span>
+    </div>
+    <div class="actions" id="actionButtons">
+      <button class="actbtn selected" data-mode="break">Cut break<small>cost 3 · fuel to 0</small></button>
+      <button class="actbtn" data-mode="thin">Thin brush<small>cost 1 · fuel ×0.4</small></button>
+      <button class="actbtn" data-mode="burn">Control burn<small>cost 2 · fuel ≈0</small></button>
+    </div>
+    <p style="margin:0; font-size:.8rem;">Tap a hex to apply the selected action. Tap it again with the same action to undo.</p>
+    <div class="spacer"></div>
+    <button class="primary" id="btnRunSeason">Run the season</button>
+  </section>
+
+  <!-- SEASON -->
+  <section class="screen" id="screen-season">
+    <div class="hud">
+      <span>Year <b id="seasonYear">1</b> — the season</span>
+      <span id="seasonWeatherLabel">dry</span>
+    </div>
+    <div id="mapWrapSeason"><canvas id="seasonCanvas" width="380" height="380"></canvas></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#c1502e"></i> burning</span>
+      <span><i class="swatch" style="background:#4a4a4a"></i> burned out</span>
+    </div>
+    <div class="row">
+      <button id="btnPausePlay">Pause</button>
+      <button id="btnSpeed">Speed ×1</button>
+      <button id="btnSkip">Skip to result</button>
+    </div>
+  </section>
+
+  <!-- AUTOPSY -->
+  <section class="screen" id="screen-autopsy">
+    <div class="hud">
+      <span>Year <b id="autopsyYear">1</b> — the autopsy</span>
+    </div>
+    <div id="mapWrapAutopsy"><canvas id="autopsyCanvas" width="380" height="380"></canvas></div>
+    <div class="legend wrap">
+      <span><i class="swatch" style="background:#d9a441"></i> saved by your prep</span>
+      <span><i class="swatch" style="background:#c1502e"></i> burned either way</span>
+      <span><i class="swatch" style="background:#7a4fae"></i> burned only because of you</span>
+    </div>
+    <div class="statgrid">
+      <div class="stat"><b id="statPrepped">0</b><span>hexes burned, your year</span></div>
+      <div class="stat"><b id="statGhost">0</b><span>hexes burned, ghost year</span></div>
+    </div>
+    <div id="landmarkList"></div>
+    <button class="ghost" id="btnShare">Copy the year's story</button>
+    <div class="spacer"></div>
+    <button class="primary" id="btnNextYear">Next year</button>
+  </section>
+
+  <!-- END -->
+  <section class="screen" id="screen-end">
+    <div class="spacer"></div>
+    <h2>Ten years kept</h2>
+    <div class="statgrid">
+      <div class="stat"><b id="endPrepped">0</b><span>total hexes burned, your decade</span></div>
+      <div class="stat"><b id="endGhost">0</b><span>total hexes burned, ghost decade</span></div>
+    </div>
+    <p id="endSummary"></p>
+    <button class="ghost" id="btnShareEnd">Copy the decade's story</button>
+    <div class="spacer"></div>
+    <button class="primary" id="btnRestart">Start a new watch</button>
+  </section>
+
+  <div id="toast"></div>
+</div>
+<script type="module" src="./game.js"></script>
+</body>
+</html>
